@@ -2,10 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-
 #define BUFFER_SZ 50
-
-
 
 //prototypes
 void usage(char *);
@@ -29,6 +26,11 @@ void print_help(){
 
 int setup_buff(char *buff, char *user_str, int len){
     //TODO: #4:  Implement the setup buff as per the directions
+
+    for(int i = 0; i < len; i++){
+        if()
+    }
+
     return 0; //for now just so the code compiles. 
 }
 
@@ -82,7 +84,11 @@ int main(int argc, char *argv[]){
     //WE NOW WILL HANDLE THE REQUIRED OPERATIONS
 
     //TODO:  #2 Document the purpose of the if statement below
-    //      PLACE A COMMENT BLOCK HERE EXPLAINING
+
+    // Much like the previous case, or there are less than 3 arguments (including the program
+    // call), that means that you are not telling the program what to do with your input string.
+    // It cannot do anything, and must exit after telling the user the proper signature.
+
     if (argc < 3){
         usage(argv[0]);
         exit(1);
@@ -95,6 +101,10 @@ int main(int argc, char *argv[]){
     //          return code of 99
     // CODE GOES HERE FOR #3
 
+    int* user_str_len = malloc(BUFFER_SZ);
+    if(user_str_len == NULL){
+        exit(99);
+    }
 
     user_str_len = setup_buff(buff, input_string, BUFFER_SZ);     //see todos
     if (user_str_len < 0){
@@ -133,27 +143,3 @@ int main(int argc, char *argv[]){
 //          PLACE YOUR ANSWER HERE
 
 
-
-// void count_words(char* string){
-
-// }
-
-// void reverse_characters(char* string){
-
-// }
-
-// void print_words(char* string){
-
-// }
-
-// void 
-
-// int main(int argc, char * argv[]){
-//     if (argc == 1) {
-//         printf("No options provided. Use -h for help.\n");
-//         return 1;
-//     }
-
-//     print_help();
-//     return 0;
-// }
