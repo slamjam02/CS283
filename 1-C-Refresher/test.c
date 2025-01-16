@@ -12,6 +12,7 @@ int  setup_buff(char *, char *, int);
 //prototypes for functions to handle required functionality
 int  count_words(char *, int, int);
 //add additional prototypes here
+void print_help();
 
 void print_help(){
     printf("This is a Text Line Processor application.\n\n");
@@ -27,10 +28,10 @@ void print_help(){
 
 int setup_buff(char *buff, char *user_str, int len){
     //TODO: #4:  Implement the setup buff as per the directions
-    int currentBufferPos = 0;
     int currentUserPos = 0;
+    char *originalBuffPos = buff;
 
-    while(user_str[currentUserPos] != '\0'){
+    while(*user_str != '\0'){
         // "Boolean" variable to confirm whether 
         int addChar = 1;
 
@@ -40,30 +41,32 @@ int setup_buff(char *buff, char *user_str, int len){
 
         // Do not add a character if the current buffer character is a space
         // and the current user string character is a whitespace character.
-        if(!(buff[currentBufferPos - 1] == ' ' && ((user_str[currentUserPos] == ' ') || (user_str[currentUserPos] == '\t') || (user_str[currentUserPos] == '\n')))){
+        if(!(*(buff - 1) == ' ' && ((*user_str == ' ') || (*user_str == '\t') || (*user_str == '\n')))){
 
             // If char is a tab or nl, add a space to buff instead.
-            if(user_str[currentUserPos] == '\t' || user_str[currentUserPos] == '\n'){
-                buff[currentBufferPos] = ' ';
-                currentBufferPos++;
+            if(*user_str == '\t' || *user_str == '\n' || *user_str == ' '){
+                // Don't add a whitespace character at the start of the buffer :P
+                //if(!(currentBufferPos == 0)){
+                    *buff = ' ';
+                    buff++;
+                //}
             }
-
             // Otherwise, just add the character.
             else{
-                buff[currentBufferPos] = user_str[currentUserPos];
-                currentBufferPos++;
+                *buff = *user_str;
+                buff++;
             }   
         }
-
+        user_str++;
         currentUserPos++;
     }
-
-    while(currentBufferPos < len){
-        buff[currentBufferPos] = '.';
-        currentBufferPos++;
+    
+    while(buff - originalBuffPos < len){
+        *buff = '.';
+        buff++;
     }
 
-    return currentUserPos + 1;
+    return currentUserPos++;
 }
 
 void print_buff(char *buff, int len){
@@ -157,6 +160,7 @@ int main(int argc, char *argv[]){
             }
             printf("Word Count: %d\n", rc);
             break;
+        case 'x':
 
         //TODO:  #5 Implement the other cases for 'r' and 'w' by extending
         //       the case statement options
