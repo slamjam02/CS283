@@ -24,14 +24,47 @@ void print_help(){
     printf("\n");
 }
 
+
 int setup_buff(char *buff, char *user_str, int len){
     //TODO: #4:  Implement the setup buff as per the directions
+    int currentBufferPos = 0;
+    int currentUserPos = 0;
 
-    for(int i = 0; i < len; i++){
-        if()
+    while(currentUserPos != '\0'){
+        bool addchar = true;
+
+        if (i > len){
+            return -1;
+        }
+
+        // Do not add a character if the current buffer character is a space
+        // and the current user string character is a whitespace character.
+        if(buff[currentBufferPos] == ' ' && ((user_str[currentUserPos] == ' ') || (user_str[currentUserPos] == '\t') || (user_str[currentUserPos] == '\n'))){
+            addChar = false;
+        }
+
+        if(addChar){
+            // If char is a tab or nl, add a space to buff instead.
+            if(user_str[currentUserPos] == '\t' || user_str[currentUserPos] == '\n'){
+                buff[currentBufferPos] = ' ';
+                currentBufferPos++;
+            }
+            // Otherwise, just add the character.
+            else{
+                buff[currentBufferPos] = user_str[currentUserPos];
+                currentBufferPos++;
+            }
+        }
+
+        currentUserPos++;
     }
 
-    return 0; //for now just so the code compiles. 
+    while(currentBufferPos < len){
+        buff[currentBufferPos] = '.';
+        currentBufferPos++;
+    }
+
+    return currentUserPos + 1;
 }
 
 void print_buff(char *buff, int len){
@@ -101,12 +134,14 @@ int main(int argc, char *argv[]){
     //          return code of 99
     // CODE GOES HERE FOR #3
 
-    int* user_str_len = malloc(BUFFER_SZ);
-    if(user_str_len == NULL){
+    // Allocate BUFFER_SZ bytes for the buff char pointer.
+    char *buff = malloc(BUFFER_SZ);
+    if(buff == NULL){
         exit(99);
     }
 
-    user_str_len = setup_buff(buff, input_string, BUFFER_SZ);     //see todos
+    int user_str_len = setup_buff(buff, input_string, BUFFER_SZ);  
+       //see todos
     if (user_str_len < 0){
         printf("Error setting up buffer, error = %d", user_str_len);
         exit(2);
