@@ -30,29 +30,33 @@ int setup_buff(char *buff, char *user_str, int len){
     int currentBufferPos = 0;
     int currentUserPos = 0;
 
-    while(currentUserPos != '\0'){
-        bool addchar = true;
+    while(user_str[currentUserPos] != '\0'){
+        int addChar = 1;
 
-        if (i > len){
+        if (currentUserPos > len){
             return -1;
         }
 
         // Do not add a character if the current buffer character is a space
         // and the current user string character is a whitespace character.
-        if(buff[currentBufferPos] == ' ' && ((user_str[currentUserPos] == ' ') || (user_str[currentUserPos] == '\t') || (user_str[currentUserPos] == '\n'))){
-            addChar = false;
+        if(buff[currentBufferPos - 1] == ' ' && ((user_str[currentUserPos] == ' ') || (user_str[currentUserPos] == '\t') || (user_str[currentUserPos] == '\n'))){
+            addChar = 0;
+            //printf("skipping whitespace\n");
         }
 
-        if(addChar){
+        if(addChar == 1){
             // If char is a tab or nl, add a space to buff instead.
             if(user_str[currentUserPos] == '\t' || user_str[currentUserPos] == '\n'){
                 buff[currentBufferPos] = ' ';
                 currentBufferPos++;
+                //printf("added %c\n", ' ');
+
             }
             // Otherwise, just add the character.
             else{
                 buff[currentBufferPos] = user_str[currentUserPos];
                 currentBufferPos++;
+                //printf("added %c\n", user_str[currentUserPos]);
             }
         }
 
@@ -110,6 +114,8 @@ int main(int argc, char *argv[]){
 
     //handle the help flag and then exit normally
     if (opt == 'h'){
+        print_help();
+
         usage(argv[0]);
         exit(0);
     }
@@ -135,12 +141,12 @@ int main(int argc, char *argv[]){
     // CODE GOES HERE FOR #3
 
     // Allocate BUFFER_SZ bytes for the buff char pointer.
-    char *buff = malloc(BUFFER_SZ);
+    buff = malloc(BUFFER_SZ);
     if(buff == NULL){
         exit(99);
     }
 
-    int user_str_len = setup_buff(buff, input_string, BUFFER_SZ);  
+    user_str_len = setup_buff(buff, input_string, BUFFER_SZ);  
        //see todos
     if (user_str_len < 0){
         printf("Error setting up buffer, error = %d", user_str_len);
