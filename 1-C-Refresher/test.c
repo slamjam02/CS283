@@ -31,6 +31,7 @@ int setup_buff(char *buff, char *user_str, int len){
     int currentUserPos = 0;
 
     while(user_str[currentUserPos] != '\0'){
+        // "Boolean" variable to confirm whether 
         int addChar = 1;
 
         if (currentUserPos > len){
@@ -39,25 +40,19 @@ int setup_buff(char *buff, char *user_str, int len){
 
         // Do not add a character if the current buffer character is a space
         // and the current user string character is a whitespace character.
-        if(buff[currentBufferPos - 1] == ' ' && ((user_str[currentUserPos] == ' ') || (user_str[currentUserPos] == '\t') || (user_str[currentUserPos] == '\n'))){
-            addChar = 0;
-            //printf("skipping whitespace\n");
-        }
+        if(!(buff[currentBufferPos - 1] == ' ' && ((user_str[currentUserPos] == ' ') || (user_str[currentUserPos] == '\t') || (user_str[currentUserPos] == '\n')))){
 
-        if(addChar == 1){
             // If char is a tab or nl, add a space to buff instead.
             if(user_str[currentUserPos] == '\t' || user_str[currentUserPos] == '\n'){
                 buff[currentBufferPos] = ' ';
                 currentBufferPos++;
-                //printf("added %c\n", ' ');
-
             }
+
             // Otherwise, just add the character.
             else{
                 buff[currentBufferPos] = user_str[currentUserPos];
                 currentBufferPos++;
-                //printf("added %c\n", user_str[currentUserPos]);
-            }
+            }   
         }
 
         currentUserPos++;
