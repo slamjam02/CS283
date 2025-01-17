@@ -84,7 +84,31 @@ void usage(char *exename){
 
 int count_words(char *buff, int len, int str_len){
     //YOU MUST IMPLEMENT
-    return 0;
+
+    int currentIndex = 0;
+    int wordCount = 0;
+    char *originalBuffPos = buff;
+
+    while (currentIndex < str_len){
+        if(*buff == ' ' || currentIndex == str_len - 1){
+            wordCount++;
+        }
+
+        buff++;
+        currentIndex++;
+    }
+
+    if (*originalBuffPos == ' '){
+        printf("removed first space count\n");
+        wordCount--;
+    }
+
+    if (*(originalBuffPos + currentIndex) == ' '){
+        printf("removed last space count\n");
+        wordCount--;
+    }
+
+    return wordCount;
 }
 
 //ADD OTHER HELPER FUNCTIONS HERE FOR OTHER REQUIRED PROGRAM OPTIONS
