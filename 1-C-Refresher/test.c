@@ -11,8 +11,12 @@ int  setup_buff(char *, char *, int);
 
 //prototypes for functions to handle required functionality
 int  count_words(char *, int, int);
+
 //add additional prototypes here
 void print_help();
+void reverse_string(char *, int, int);
+void word_print(char *, int, int);
+
 
 void print_help(){
     printf("This is a Text Line Processor application.\n\n");
@@ -29,6 +33,8 @@ void print_help(){
 int setup_buff(char *buff, char *user_str, int len){
     //TODO: #4:  Implement the setup buff as per the directions
     int currentUserPos = 0;
+    int stringLen = 0;
+
     char *originalBuffPos = buff;
 
     while(*user_str != '\0'){
@@ -45,18 +51,17 @@ int setup_buff(char *buff, char *user_str, int len){
 
             // If char is a tab or nl, add a space to buff instead.
             if(*user_str == '\t' || *user_str == '\n' || *user_str == ' '){
-                // Don't add a whitespace character at the start of the buffer :P
-                //if(!(currentBufferPos == 0)){
-                    *buff = ' ';
-                    buff++;
-                //}
+                *buff = ' ';
             }
             // Otherwise, just add the character.
             else{
                 *buff = *user_str;
-                buff++;
             }   
+
+            buff++;
+            stringLen++;
         }
+
         user_str++;
         currentUserPos++;
     }
@@ -66,7 +71,7 @@ int setup_buff(char *buff, char *user_str, int len){
         buff++;
     }
 
-    return currentUserPos++;
+    return stringLen;
 }
 
 void print_buff(char *buff, int len){
@@ -77,17 +82,11 @@ void print_buff(char *buff, int len){
     putchar('\n');
 }
 
-void usage(char *exename){
-    printf("usage: %s [-h|c|r|w|x] \"string\" [other args]\n", exename);
-
-}
-
 int count_words(char *buff, int len, int str_len){
     //YOU MUST IMPLEMENT
 
     int currentIndex = 0;
     int wordCount = 0;
-    char *originalBuffPos = buff;
 
     while (currentIndex < str_len){
         if(*buff == ' ' || currentIndex == str_len - 1){
@@ -98,18 +97,68 @@ int count_words(char *buff, int len, int str_len){
         currentIndex++;
     }
 
-    if (*originalBuffPos == ' '){
+    if (*(buff - currentIndex) == ' '){
         printf("removed first space count\n");
-        wordCount--;
-    }
-
-    if (*(originalBuffPos + currentIndex) == ' '){
-        printf("removed last space count\n");
         wordCount--;
     }
 
     return wordCount;
 }
+
+void reverse_string(char *buff, int len, int str_len){
+    char *i = buff + str_len - 1; 
+    printf("Reversed string: ");
+
+    while(i >= buff){
+        printf("%c", *i);
+        i--;
+    }
+    printf("\n");
+
+}
+
+void word_print(char *buff, int len, int str_len){
+    printf("Word Print\n----------\n");  
+
+    int currentIndex = 0;
+    int letterCount = 0;
+    int wordCount = 1;
+
+    printf("%d. ", wordCount);
+    while (currentIndex < str_len){
+        if(*buff == ' ' && currentIndex == 0){
+            buff++;
+            currentIndex++;
+        }
+        if(*buff == ' ' && currentIndex == str_len - 1){
+            break;
+        }
+
+        if(*buff == ' '){
+            wordCount++;
+            printf(" (%d)\n", letterCount);
+            printf("%d. ", wordCount);
+            letterCount = 0;
+        }
+        else{
+            printf("%c", *buff);
+            letterCount++;
+        }
+
+        buff++;
+        currentIndex++;
+    }
+
+    printf(" (%d)\n", letterCount);
+}
+
+
+void usage(char *exename){
+    printf("usage: %s [-h|c|r|w|x] \"string\" [other args]\n", exename);
+
+}
+
+
 
 //ADD OTHER HELPER FUNCTIONS HERE FOR OTHER REQUIRED PROGRAM OPTIONS
 
@@ -184,7 +233,14 @@ int main(int argc, char *argv[]){
             }
             printf("Word Count: %d\n", rc);
             break;
+        case 'r':
+            reverse_string(buff, BUFFER_SZ, user_str_len);
+            break;
+        case 'w':
+            word_print(buff, BUFFER_SZ, user_str_len);
+            break;
         case 'x':
+            break;
 
         //TODO:  #5 Implement the other cases for 'r' and 'w' by extending
         //       the case statement options
