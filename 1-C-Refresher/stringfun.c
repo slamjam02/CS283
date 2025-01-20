@@ -16,8 +16,11 @@ int  count_words(char *, int, int);
 void print_help();
 void reverse_string(char *, int, int);
 void word_print(char *, int, int);
+void search_and_replace(char *, int, char *, char *);
 
 
+// I was going to use this originally, but the function is just here, doesn't get used as it breaks the test cases...
+// Feel free to steal this for future terms if you want.
 void print_help(){
     printf("This is a Text Line Processor application.\n\n");
     printf("$ stringfun -[h|c|r|w|x] \"sample string\" [other_options]\n\n");
@@ -37,50 +40,73 @@ int setup_buff(char *buff, char *user_str, int len){
 
     char *originalBuffPos = buff;
 
-    while(*user_str != '\0'){
-        // "Boolean" variable to confirm whether 
-        int addChar = 1;
+    while(*user_str == ' '){
+        user_str++;
+    }
 
-        if (currentUserPos > len){
-            return -1;
-        }
+    while(*user_str != '\0'){
+        // Boolean variable to store whether it is okay to add the character
+        int addChar = 1;
+        int currentBuffPos = 0;
 
         // Do not add a character if the current buffer character is a space
         // and the current user string character is a whitespace character.
         if(!(*(buff - 1) == ' ' && ((*user_str == ' ') || (*user_str == '\t') || (*user_str == '\n')))){
-
+            
             // If char is a tab or nl, add a space to buff instead.
             if(*user_str == '\t' || *user_str == '\n' || *user_str == ' '){
                 *buff = ' ';
             }
+
             // Otherwise, just add the character.
             else{
                 *buff = *user_str;
             }   
 
+            // If the string is too big, return error code prior to incrementing buffer
+            if (stringLen + 1 > len){
+                return -1;
+            }
+
+            // Increment buffer and string length values
             buff++;
             stringLen++;
         }
 
+        // Increment the user string and currentUserPos values
         user_str++;
         currentUserPos++;
     }
-    
+
+    // Remove space at the end if there is one
+    if(*(buff - 1) == ' '){
+        *(buff - 1) = '.';
+    }
+
+    // Fill with dots!!
     while(buff - originalBuffPos < len){
         *buff = '.';
         buff++;
     }
 
+    // 
+    buff = originalBuffPos;
     return stringLen;
 }
 
+
 void print_buff(char *buff, int len){
-    printf("Buffer:  ");
+    printf("Buffer:  [");
+    // For each character in the buffer, output the character
     for (int i=0; i<len; i++){
         putchar(*(buff+i));
     }
+    putchar(']');
     putchar('\n');
 }
+
+
+//ADD OTHER HELPER FUNCTIONS HERE FOR OTHER REQUIRED PROGRAM OPTIONS
 
 int count_words(char *buff, int len, int str_len){
     //YOU MUST IMPLEMENT
@@ -89,32 +115,50 @@ int count_words(char *buff, int len, int str_len){
     int wordCount = 0;
 
     while (currentIndex < str_len){
+
+        // If the current index is a space or is the last character, increase the word count by one
         if(*buff == ' ' || currentIndex == str_len - 1){
             wordCount++;
         }
 
+        // Increment buffer and currentIndex value
         buff++;
         currentIndex++;
-    }
-
-    if (*(buff - currentIndex) == ' '){
-        printf("removed first space count\n");
-        wordCount--;
     }
 
     return wordCount;
 }
 
-void reverse_string(char *buff, int len, int str_len){
-    char *i = buff + str_len - 1; 
-    printf("Reversed string: ");
+void reverse_string(char *buff, int len, int str_len) {
+    
+    // Pointer to the end of the string in buff
+    char *reverseTraverse = buff + str_len - 1; 
 
-    while(i >= buff){
-        printf("%c", *i);
-        i--;
+    // Temporary buff for the reversed string
+    char *tempBuff = malloc(str_len);       
+
+    // Save initial position for freeing after
+    char *tempBuffInitPos = tempBuff;         
+
+    // Reverse the string into tempBuff
+    while (reverseTraverse >= buff) {
+        *tempBuff = *reverseTraverse;
+        reverseTraverse--;
+        tempBuff++;
     }
-    printf("\n");
 
+    // Reset tempBuff to its initial position
+    tempBuff = tempBuffInitPos;
+
+    // Copy reversed string back to buff
+    char *buffPtr = buff;
+    while (tempBuff < tempBuffInitPos + str_len) {
+        *buffPtr = *tempBuff;
+        buffPtr++;
+        tempBuff++;
+    }
+
+    free(tempBuffInitPos);
 }
 
 void word_print(char *buff, int len, int str_len){
@@ -124,32 +168,93 @@ void word_print(char *buff, int len, int str_len){
     int letterCount = 0;
     int wordCount = 1;
 
+    // Print the initial "1. "
     printf("%d. ", wordCount);
+
     while (currentIndex < str_len){
+
+        // If there is a space at the start, ignore it
         if(*buff == ' ' && currentIndex == 0){
             buff++;
             currentIndex++;
         }
+
+        // If there is a space at the end, ignore it and break loop
         if(*buff == ' ' && currentIndex == str_len - 1){
             break;
         }
 
+        // If there is a space in the middle, that implies we've reached a new word
         if(*buff == ' '){
+            // Increase word count
             wordCount++;
-            printf(" (%d)\n", letterCount);
+
+            // Print relavent information
+            printf("(%d)\n", letterCount);
             printf("%d. ", wordCount);
+
+            // Reset letter count
             letterCount = 0;
         }
         else{
+            // Otherwise, print the character and increase the letter count for the current word
             printf("%c", *buff);
             letterCount++;
         }
+
+        // Increment the buffer position and currentIndex value
+        buff++;
+        currentIndex++;
+    }
+
+
+    // Print out the final information
+    printf("(%d)\n", letterCount);
+    printf("\nNumber of words returned: %d\n", wordCount);
+}
+
+// I tried to write pseudocode for this, never got around to implementing it... sorry. I'll leave it if you want to look for whatever reason :)
+
+void search_and_replace(char *buff, int str_len, char *findWord, char *replaceWord){
+    char* wordBuff = malloc(BUFFER_SZ);
+    char* wordBuffStart = wordBuff;
+    char *buffStart = buff;
+
+    int currentIndex = 0;
+
+    printf("FindWord: %s\n", findWord);
+
+    printf("ReplaceWord: %s\n", replaceWord);
+
+    while(buff < buffStart + str_len){
+        if(*buff == ' ' && currentIndex == 0){
+            printf("Ignored first space.\n");
+            buff++;
+            currentIndex++;
+        }
+        if(*buff == ' ' && currentIndex == str_len - 1){
+            printf("Ignored last space.\n");
+            break;
+
+        }
+
+        printf("Got in here.\n");
+
+        if(*buff == ' '){
+            // Do check if word matches
+        }
+        else{
+            // Reinitialize word buffer
+        }
+
+        //break;
 
         buff++;
         currentIndex++;
     }
 
-    printf(" (%d)\n", letterCount);
+
+    
 }
 
 
@@ -159,8 +264,6 @@ void usage(char *exename){
 }
 
 
-
-//ADD OTHER HELPER FUNCTIONS HERE FOR OTHER REQUIRED PROGRAM OPTIONS
 
 int main(int argc, char *argv[]){
 
@@ -185,7 +288,7 @@ int main(int argc, char *argv[]){
 
     //handle the help flag and then exit normally
     if (opt == 'h'){
-        print_help();
+        //print_help();
 
         usage(argv[0]);
         exit(0);
@@ -211,7 +314,8 @@ int main(int argc, char *argv[]){
     //          return code of 99
     // CODE GOES HERE FOR #3
 
-    // Allocate BUFFER_SZ bytes for the buff char pointer.
+    // Allocate BUFFER_SZ bytes for the buff char pointer
+    
     buff = malloc(BUFFER_SZ);
     if(buff == NULL){
         exit(99);
@@ -240,7 +344,15 @@ int main(int argc, char *argv[]){
             word_print(buff, BUFFER_SZ, user_str_len);
             break;
         case 'x':
-            break;
+            if (argc < 5){
+                usage(argv[0]);
+                exit(1);
+            }
+            //search_and_replace(buff, user_str_len, argv[3], argv[4]);
+
+            printf("Not Implemented!\n");
+            free(buff);
+            exit(0);
 
         //TODO:  #5 Implement the other cases for 'r' and 'w' by extending
         //       the case statement options
@@ -251,6 +363,7 @@ int main(int argc, char *argv[]){
 
     //TODO:  #6 Dont forget to free your buffer before exiting
     print_buff(buff,BUFFER_SZ);
+    free(buff);
     exit(0);
 }
 
