@@ -70,11 +70,14 @@ int get_student(int fd, int id, student_t *s) {
     student_t temp_student;
     int bytes_read;
 
+    // While there are bytes to read, do the following
     while ((bytes_read = read(fd, &temp_student, sizeof(student_t))) > 0) {
+        // If the bytes read are not equal to the size of a student type, throw file error
         if (bytes_read != sizeof(student_t)) {
             return ERR_DB_FILE; 
         }
 
+        // If the ID in the file equals the ID provided, copy the data into *s and return
         if (temp_student.id == id) {
             *s = temp_student; 
             return NO_ERROR;
@@ -82,6 +85,7 @@ int get_student(int fd, int id, student_t *s) {
 
     }
 
+    // If bytes_read throws an error, throw file error
     if (bytes_read == -1) {
         return ERR_DB_FILE; 
     }
@@ -126,11 +130,13 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa){
         return ERR_DB_OP;
     }
 
+    // Jump to student in database file
     int offset = id * sizeof(student_t);
     lseek(fd, offset, SEEK_SET);
 
     student_t student;
 
+    // If student already exists at ID location, throw error
     if(!(read(fd, &student, sizeof(student_t)) == 0)){
         if (memcmp(&student, &EMPTY_STUDENT_RECORD, sizeof(student_t)) != 0) {
             printf(M_ERR_DB_ADD_DUP, id);
@@ -138,16 +144,17 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa){
         }
     }
 
+    // Otherwise, write data to that spot
     student.id = id;
     strncpy(student.fname, fname, sizeof(student.fname) - 1);
     student.fname[sizeof(student.fname) - 1] = '\0';
     strncpy(student.lname, lname, sizeof(student.lname) - 1);
     student.lname[sizeof(student.lname) - 1] = '\0';
     student.gpa = gpa;
-
     write(fd, &student, sizeof(student));
 
 
+    // Return no error
     printf(M_STD_ADDED, id);
     return NO_ERROR;
 }
@@ -206,7 +213,7 @@ int del_student(int fd, int id) {
         return ERR_DB_FILE;
     }
 
-    // Write an empty record to "delete" the student
+    // Write an empty record
     ssize_t bytes_written = write(fd, &EMPTY_STUDENT_RECORD, sizeof(student_t));
     if (bytes_written != sizeof(student_t)) {
         printf(M_ERR_DB_WRITE);
@@ -249,18 +256,22 @@ int count_db_records(int fd){
     }
 
     int bytes_read;
-    int offset = sizeof(student_t);
-    int num_valid_students = 0;
+    int offset = sizeof(student_t); // Skip the first location
+    int num_valid_students = 0;  // Counter
     student_t student;
 
+    // Jump to first student location in file
     lseek(fd, offset, SEEK_SET);
 
+    // Go through each student slot in database and count ones that aren't empty
     while((bytes_read = read(fd, &student, sizeof(student_t))) > 0){
+        // If there is a valid student in that spot, add to counter
         if(memcmp(&student, &EMPTY_STUDENT_RECORD, sizeof(student_t)) != 0){
             num_valid_students++;
         } 
     }
 
+    // Return the counted number
     printf(M_DB_RECORD_CNT, num_valid_students);  
     return num_valid_students;
 
@@ -307,14 +318,18 @@ int print_db(int fd){
     }
 
     int bytes_read;
-    int offset = sizeof(student_t);
-    int num_valid_students = 0;
+    int offset = sizeof(student_t); // Skip first student slot
+    int num_valid_students = 0; // Counter
     student_t student;
 
+    // Jump to the first student slot
     lseek(fd, offset, SEEK_SET);
 
+    // Iterate through database file slots
     while((bytes_read = read(fd, &student, sizeof(student_t))) > 0){
+        // If a valid student is in that location, print them
         if(memcmp(&student, &EMPTY_STUDENT_RECORD, sizeof(student_t)) != 0){
+            // Don't print header until there is at least one valid student, and only the first time
             if(num_valid_students == 0){
                 printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST_NAME", "GPA");
             }
@@ -324,6 +339,7 @@ int print_db(int fd){
         } 
     }
 
+    // If there are no students after the loop, return that it is empty
     if(num_valid_students == 0){
         printf(M_DB_EMPTY);  
     }
