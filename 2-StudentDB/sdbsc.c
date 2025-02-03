@@ -331,7 +331,7 @@ int print_db(int fd){
         if(memcmp(&student, &EMPTY_STUDENT_RECORD, sizeof(student_t)) != 0){
             // Don't print header until there is at least one valid student, and only the first time
             if(num_valid_students == 0){
-                printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST_NAME", "GPA");
+                printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST_NAME", "LAST_NAME", "GPA");
             }
             float calculated_gpa_from_student = (float) student.gpa / 100;
             printf(STUDENT_PRINT_FMT_STRING, student.id, student.fname, student.lname, calculated_gpa_from_student);

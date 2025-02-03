@@ -71,14 +71,19 @@ setup_file() {
     }
 }
 
+# Edited to work on zsh
 @test "Make sure the file size is correct at this time" {
-    run stat --format="%s" ./student.db
-    [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "6400000" ] || {
-        echo "Failed Output:  $output"
-        echo "Expected: 64000000"
+    run stat -f "%z" ./student.db
+    [ "$status" -eq 0 ]  # Ensure the command executed successfully
+
+    expected_size="6400000"  # Ensure this value is correct
+    actual_size="${lines[0]}"
+
+    if [ "$actual_size" != "$expected_size" ]; then
+        echo "Failed Output: $actual_size"
+        echo "Expected: $expected_size"
         return 1
-    }
+    fi
 }
 
 @test "Find student 3 in db" {
@@ -154,7 +159,7 @@ setup_file() {
     normalized_output=$(echo -n "$output" | tr -s '[:space:]' ' ')
 
     # Define the expected output (normalized)
-    expected_output="ID FIRST NAME LAST_NAME GPA 1 john doe 3.45 3 jane doe 3.90 63 jim doe 2.85 99999 big dude 2.05"
+    expected_output="ID FIRST_NAME LAST_NAME GPA 1 john doe 3.45 3 jane doe 3.90 63 jim doe 2.85 99999 big dude 2.05"
 
     # Compare the normalized output
     [ "$normalized_output" = "$expected_output" ] || {
