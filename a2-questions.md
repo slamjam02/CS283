@@ -72,7 +72,7 @@ Please answer the following questions and submit in your repo for the second ass
     ```
     In this implementation the storage for the student record is allocated on the heap using `malloc()` and passed back to the caller when the function returns. What do you think about this alternative implementation of `get_student(...)`?  Address in your answer why it work work, but also think about any potential problems it could cause.  
     
-    > **ANSWER:** _start here_  
+    > **ANSWER:** To me, it seems like this would be a *working* way of achieving the same functionality as before. Now that you are calling malloc(), you are actually reserving some memory for the student data to reside. However, one issue that crops up in my mind is that once the student pointer is returned, another programmer won't necessarily know to free the data after using it, since malloc() is called within a function like this. Whoever calls the function will have to remember to free the data it reserves, which is a messy practice.
 
 
 4. Lets take a look at how storage is managed for our simple database. Recall that all student records are stored on disk using the layout of the `student_t` structure (which has a size of 64 bytes).  Lets start with a fresh database by deleting the `student.db` file using the command `rm ./student.db`.  Now that we have an empty database lets add a few students and see what is happening under the covers.  Consider the following sequence of commands:
@@ -102,11 +102,11 @@ Please answer the following questions and submit in your repo for the second ass
 
     - Please explain why the file size reported by the `ls` command was 128 bytes after adding student with ID=1, 256 after adding student with ID=3, and 4160 after adding the student with ID=64? 
 
-        > **ANSWER:** _start here_
+        > **ANSWER:** Each student takes up 64 bytes of memory/storage. The first student with ID=1 is actually in the second slot in the database file, meaning that the first slot is an empty student (since there is no student with ID = 0). Each student is placed in the file with accordance to their ID. So, when a student with ID=3 is entered in the file, there are 4 slots being taken up. 4 * 64 = 256. Likewise, 65 slots taken when a student with ID=64 is added... 65 * 64 = 4160.
 
     -   Why did the total storage used on the disk remain unchanged when we added the student with ID=1, ID=3, and ID=63, but increased from 4K to 8K when we added the student with ID=64? 
 
-        > **ANSWER:** _start here_
+        > **ANSWER:** The reason the file started out at 4.0K and then increased to 8.0K is due to the file system's block allocation. In the computer used for this example, that block allocation is 4.0K. Files take up a multiple of the storage space amount for that system so they're more manageable and faster to retrieve information (as we learned in class) for programs. Once you hit 4.0k worth of data, the block allocation increases to a multiple of that number. In this case, 8.0K. Two blocks. Prior to adding the 64th student, the storage used by the file was small enough to fit in one block, so it remained 4.0K.
 
     - Now lets add one more student with a large student ID number  and see what happens:
 
@@ -119,4 +119,4 @@ Please answer the following questions and submit in your repo for the second ass
         ```
         We see from above adding a student with a very large student ID (ID=99999) increased the file size to 6400000 as shown by `ls` but the raw storage only increased to 12K as reported by `du`.  Can provide some insight into why this happened?
 
-        > **ANSWER:**  _start here_
+        > **ANSWER:**  The operating system will actually not write blocks entirely filled with 0s to the disk as a space-saving measure. It still tracks that the blocks are theoretically there, but doesn't write them to disk. Any of the blocks containing information are written to the disk, but the others are not, but as the program reads the file, the OS will insert those empty blocks into memory.
