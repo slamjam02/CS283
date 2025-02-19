@@ -57,7 +57,72 @@ int exec_local_cmd_loop()
     int rc = 0;
     cmd_buff_t cmd;
 
-    // TODO IMPLEMENT MAIN LOOP
+    while(1){
+
+        printf("%s", SH_PROMPT);
+
+        if (fgets(cmd_buff, ARG_MAX, stdin) == NULL){
+            printf("\n");
+            break;
+        }
+
+        //remove the trailing \n from cmd_buff
+        cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
+
+        // Trim leading spaces
+        while (*cmd && isspace((unsigned char) *cmd)) {
+            cmd++;
+        }
+
+        // Trim trailing spaces
+        char *end = cmd + strlen(cmd) - 1;
+        while (end > cmd && isspace((unsigned char) *end)) {
+            *end = '\0';
+            end--;
+        }
+
+        command_t *cur_cmd = &clist->commands[cmd_count];
+
+        char *arg;
+        char *arg_rest = cmd;
+        int arg_count = 0;
+
+        while ((arg = strtok_r(arg_rest, " ", &arg_rest)) != NULL) {
+            // First string is the executable
+            if (arg_count == 0) {
+                if (strlen(arg) >= EXE_MAX) return ERR_CMD_OR_ARGS_TOO_BIG;
+
+                strncpy(cur_cmd->exe, arg, EXE_MAX - 1);
+                cur_cmd->exe[EXE_MAX - 1] = '\0';
+
+            // Other strings are arguments
+            } else {
+
+                if (strlen(cur_cmd->args) + strlen(arg) + 1 >= ARG_MAX) {
+                    return ERR_CMD_OR_ARGS_TOO_BIG;
+                }
+
+                // Add space after first argument if there are more than one
+                if (arg_count > 1) {
+                    strncat(cur_cmd->args, " ", ARG_MAX - strlen(cur_cmd->args) - 1);
+                }
+
+                // Concatenate argument to arg string
+                strncat(cur_cmd->args, arg, ARG_MAX - strlen(cur_cmd->args) - 1);
+            }
+
+            arg_count++;
+        }
+
+        
+ 
+
+
+
+
+
+        //IMPLEMENT THE REST OF THE REQUIREMENTS
+    }
 
     // TODO IMPLEMENT parsing input to cmd_buff_t *cmd_buff
 
