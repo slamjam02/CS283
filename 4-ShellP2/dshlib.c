@@ -70,21 +70,21 @@ int exec_local_cmd_loop()
         cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
 
         // Trim leading spaces
-        while (*cmd && isspace((unsigned char) *cmd)) {
-            cmd++;
+        while (*cmd_buff && isspace((unsigned char) *cmd_buff)) {
+            cmd_buff++;
         }
 
         // Trim trailing spaces
-        char *end = cmd + strlen(cmd) - 1;
-        while (end > cmd && isspace((unsigned char) *end)) {
+        char *end = cmd_buff + strlen(cmd_buff) - 1;
+        while (end > cmd_buff && isspace((unsigned char) *end)) {
             *end = '\0';
             end--;
         }
 
-        command_t *cur_cmd = &clist->commands[cmd_count];
+        cmd_buff_t *cur_cmd = malloc(sizeof(cmd_buff_t));
 
         char *arg;
-        char *arg_rest = cmd;
+        char *arg_rest = cmd_buff;
         int arg_count = 0;
 
         while ((arg = strtok_r(arg_rest, " ", &arg_rest)) != NULL) {
@@ -92,36 +92,50 @@ int exec_local_cmd_loop()
             if (arg_count == 0) {
                 if (strlen(arg) >= EXE_MAX) return ERR_CMD_OR_ARGS_TOO_BIG;
 
-                strncpy(cur_cmd->exe, arg, EXE_MAX - 1);
-                cur_cmd->exe[EXE_MAX - 1] = '\0';
+                strncpy(cur_cmd->_cmd_buffer, arg, EXE_MAX - 1);
+                cur_cmd->_cmd_buffer[EXE_MAX - 1] = '\0';
 
             // Other strings are arguments
             } else {
 
-                if (strlen(cur_cmd->args) + strlen(arg) + 1 >= ARG_MAX) {
-                    return ERR_CMD_OR_ARGS_TOO_BIG;
+                // if (strlen(cur_cmd->args) + strlen(arg) + 1 >= ARG_MAX) {
+                //     return ERR_CMD_OR_ARGS_TOO_BIG;
+                // }
+                if(arg_count >= CMD_ARGV_MAX){
+                    
                 }
 
                 // Add space after first argument if there are more than one
-                if (arg_count > 1) {
-                    strncat(cur_cmd->args, " ", ARG_MAX - strlen(cur_cmd->args) - 1);
-                }
 
                 // Concatenate argument to arg string
-                strncat(cur_cmd->args, arg, ARG_MAX - strlen(cur_cmd->args) - 1);
+                strncpy(cur_cmd->argv[arg_count - 1], arg, ARG_MAX);
             }
 
             arg_count++;
         }
 
+        cur_cmd->argc = arg_count;
+
+
         
+        pid_t pid = fork();
+
+        if (pid == -1) {
+            perror("fork failed");
+            exit(1);
+        } else if (pid == 0) {  // Child process
+            execv(cur_cmd->_cmd_buffer, cur_cmd->argv); // Replace with new process
+            perror("execlp failed"); // Only runs if execlp fails
+            exit(1);
+        } else {  // Parent process
+            int status;
+            waitpid(pid, &status, 0); // Wait for child to finish
+            printf("Child process finished.\n");
+        }
+
  
 
-
-
-
-
-        //IMPLEMENT THE REST OF THE REQUIREMENTS
+        free(cur_cmd);
     }
 
     // TODO IMPLEMENT parsing input to cmd_buff_t *cmd_buff
