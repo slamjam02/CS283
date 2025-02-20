@@ -120,6 +120,11 @@ int exec_local_cmd_loop()
             } else if (isspace((unsigned char)*ptr) && !in_quotes) {
                 if (arg_start) {
                     *ptr = '\0';
+
+                    if (arg_count >= CMD_ARGV_MAX - 1) {
+                        return ERR_MEMORY;                      
+                    }
+
                     args[arg_count++] = strdup(arg_start);
                     arg_start = NULL;
                 }
@@ -176,7 +181,6 @@ int exec_local_cmd_loop()
         for (int i = 0; i < arg_count; i++) free(args[i]);
     }
 
-    free(cmd_buff);
     return OK;
 }
 
