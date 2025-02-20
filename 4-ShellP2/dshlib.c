@@ -8,6 +8,26 @@
 #include <sys/wait.h>
 #include "dshlib.h"
 
+
+
+int dsh_cd(int argc, char *argv[]) {
+    // If no argument is given, do nothing (per assignment requirement)
+    if (argc == 1) {
+        return 0;
+    }
+
+    // Attempt to change directory
+    if (chdir(argv[1]) != 0) {
+        perror("cd");  // Print error if chdir() fails
+        return -1;
+    }
+
+    return 0;
+}
+
+
+
+
 /*
  * Implement your exec_local_cmd_loop function by building a loop that prompts the 
  * user for input.  Use the SH_PROMPT constant from dshlib.h and then
@@ -53,98 +73,111 @@
  */
 int exec_local_cmd_loop()
 {
-    char *cmd_buff;
-    int rc = 0;
+
+
+    char *cmd_buff = malloc(SH_CMD_MAX);
+    if (!cmd_buff) return ERR_MEMORY;
+
     cmd_buff_t cmd;
 
-    while(1){
-
+    while (1) {
         printf("%s", SH_PROMPT);
 
-        if (fgets(cmd_buff, ARG_MAX, stdin) == NULL){
+        if (fgets(cmd_buff, SH_CMD_MAX, stdin) == NULL) {
             printf("\n");
             break;
         }
 
-        //remove the trailing \n from cmd_buff
-        cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
+        // Remove trailing newline
+        cmd_buff[strcspn(cmd_buff, "\n")] = '\0';
 
         // Trim leading spaces
-        while (*cmd_buff && isspace((unsigned char) *cmd_buff)) {
+        while (*cmd_buff && isspace((unsigned char)*cmd_buff)) {
             cmd_buff++;
         }
 
         // Trim trailing spaces
         char *end = cmd_buff + strlen(cmd_buff) - 1;
-        while (end > cmd_buff && isspace((unsigned char) *end)) {
+        while (end > cmd_buff && isspace((unsigned char)*end)) {
             *end = '\0';
             end--;
         }
 
-        cmd_buff_t *cur_cmd = malloc(sizeof(cmd_buff_t));
-
-        char *arg;
-        char *arg_rest = cmd_buff;
+        char *args[CMD_ARGV_MAX] = {NULL};  // Argument list
         int arg_count = 0;
+        char *ptr = cmd_buff;
+        bool in_quotes = false;
+        char *arg_start = NULL;
 
-        while ((arg = strtok_r(arg_rest, " ", &arg_rest)) != NULL) {
-            // First string is the executable
-            if (arg_count == 0) {
-                if (strlen(arg) >= EXE_MAX) return ERR_CMD_OR_ARGS_TOO_BIG;
-
-                strncpy(cur_cmd->_cmd_buffer, arg, EXE_MAX - 1);
-                cur_cmd->_cmd_buffer[EXE_MAX - 1] = '\0';
-
-            // Other strings are arguments
-            } else {
-
-                // if (strlen(cur_cmd->args) + strlen(arg) + 1 >= ARG_MAX) {
-                //     return ERR_CMD_OR_ARGS_TOO_BIG;
-                // }
-                if(arg_count >= CMD_ARGV_MAX){
-                    
+        while (*ptr) {
+            if (*ptr == '"') {
+                in_quotes = !in_quotes;
+                if (!in_quotes) {
+                    *ptr = '\0';
+                } else {
+                    arg_start = ptr + 1;
                 }
-
-                // Add space after first argument if there are more than one
-
-                // Concatenate argument to arg string
-                strncpy(cur_cmd->argv[arg_count - 1], arg, ARG_MAX);
+            } else if (isspace((unsigned char)*ptr) && !in_quotes) {
+                if (arg_start) {
+                    *ptr = '\0';
+                    args[arg_count++] = strdup(arg_start);
+                    arg_start = NULL;
+                }
+            } else {
+                if (!arg_start) {
+                    arg_start = ptr;
+                }
             }
+            ptr++;
+        }
+        if (arg_start) {
+            args[arg_count++] = strdup(arg_start);
+        }
+        args[arg_count] = NULL;
 
-            arg_count++;
+        if (arg_count == 0) {
+            printf("%s\n", CMD_WARN_NO_CMD);
+            continue;
         }
 
-        cur_cmd->argc = arg_count;
+        cmd.argc = arg_count;
+        for (int i = 0; i < arg_count; i++) {
+            cmd.argv[i] = args[i];
+        }
+        cmd.argv[arg_count] = NULL;
 
+        // Built-in commands
+        if (strcmp(args[0], "exit") == 0) {
+            printf("Exiting shell...\n");
+            for (int i = 0; i < arg_count; i++) free(args[i]);
+            free(cmd_buff);
+            exit(0);
+        }
+        if (strcmp(args[0], "cd") == 0) {
+            dsh_cd(cmd.argc, cmd.argv);
+            continue;
+        }
 
-        
+        // External commands
         pid_t pid = fork();
-
         if (pid == -1) {
             perror("fork failed");
             exit(1);
-        } else if (pid == 0) {  // Child process
-            execv(cur_cmd->_cmd_buffer, cur_cmd->argv); // Replace with new process
-            perror("execlp failed"); // Only runs if execlp fails
+        } else if (pid == 0) {
+            execvp(args[0], args);
+            perror("execvp failed");
             exit(1);
-        } else {  // Parent process
+        } else {
             int status;
-            waitpid(pid, &status, 0); // Wait for child to finish
-            printf("Child process finished.\n");
+            waitpid(pid, &status, 0);
         }
 
- 
-
-        free(cur_cmd);
+        // Free allocated memory
+        for (int i = 0; i < arg_count; i++) free(args[i]);
     }
 
-    // TODO IMPLEMENT parsing input to cmd_buff_t *cmd_buff
-
-    // TODO IMPLEMENT if built-in command, execute builtin logic for exit, cd (extra credit: dragon)
-    // the cd command should chdir to the provided directory; if no directory is provided, do nothing
-
-    // TODO IMPLEMENT if not built-in command, fork/exec as an external command
-    // for example, if the user input is "ls -l", you would fork/exec the command "ls" with the arg "-l"
-
+    free(cmd_buff);
     return OK;
 }
+
+
