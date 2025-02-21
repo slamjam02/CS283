@@ -4,16 +4,20 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <sys/wait.h>
 #include "dshlib.h"
 
 
 
 int dsh_cd(int argc, char *argv[]) {
-    // If no argument is given, do nothing (per assignment requirement)
+    // If no argument is given, do nothing
     if (argc == 1) {
         return 0;
+    }
+
+    if (argc > 2){
+        perror("cd");
+        return -1;
     }
 
     // Attempt to change directory
@@ -174,8 +178,9 @@ int exec_local_cmd_loop()
             exit(1);
         } else {
             int status;
-            waitpid(pid, &status, 0);
+            wait(&status);
         }
+
 
         // Free allocated memory
         for (int i = 0; i < arg_count; i++) free(args[i]);
