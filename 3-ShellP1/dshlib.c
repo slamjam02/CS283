@@ -101,3 +101,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist) {
     clist->num = cmd_count;
     return (cmd_count == 0) ? WARN_NO_CMDS : OK;
 }
+
+
+

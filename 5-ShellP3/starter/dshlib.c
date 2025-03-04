@@ -9,18 +9,62 @@
 
 #include "dshlib.h"
 
+int dsh_cd(int argc, char *argv[]) {
+    if (argc == 1) {
+        return 0;
+    }
 
+    if (argc > 2) {
+        perror("cd");
+        return -1;
+    }
 
+    if (chdir(argv[1]) != 0) {
+        perror("cd");
+        return -1;
+    }
 
+    return 0;
+}
+
+/*
+ *  build_cmd_list
+ *    cmd_line:     the command line from the user
+ *    clist *:      pointer to clist structure to be populated
+ *
+ *  This function builds the command_list_t structure passed by the caller
+ *  It does this by first splitting the cmd_line into commands by spltting
+ *  the string based on any pipe characters '|'.  It then traverses each
+ *  command.  For each command (a substring of cmd_line), it then parses
+ *  that command by taking the first token as the executable name, and
+ *  then the remaining tokens as the arguments.
+ *
+ *  NOTE your implementation should be able to handle properly removing
+ *  leading and trailing spaces!
+ *
+ *  errors returned:
+ *
+ *    OK:                      No Error
+ *    ERR_TOO_MANY_COMMANDS:   There is a limit of CMD_MAX (see dshlib.h)
+ *                             commands.
+ *    ERR_CMD_OR_ARGS_TOO_BIG: One of the commands provided by the user
+ *                             was larger than allowed, either the
+ *                             executable name, or the arg string.
+ *
+ *  Standard Library Functions You Might Want To Consider Using
+ *      memset(), strcmp(), strcpy(), strtok(), strlen(), strchr()
+ */
 int build_cmd_list(char *cmd_line, command_list_t *clist) {
     memset(clist, 0, sizeof(command_list_t));
 
     char *cmd;
-    char *rest = cmd_line;
+    char *cmd_buff = strdup(cmd_line);
+    char *rest = cmd_buff;
     int cmd_count = 0;
 
     while ((cmd = strtok_r(rest, PIPE_STRING, &rest)) != NULL) {
         if (cmd_count >= CMD_MAX) {
+            free(cmd_buff);
             return ERR_TOO_MANY_COMMANDS;
         }
 
@@ -36,56 +80,55 @@ int build_cmd_list(char *cmd_line, command_list_t *clist) {
             end--;
         }
 
-        if (strlen(cmd) == 0) { 
+        if (strlen(cmd) == 0) {
             continue;
         }
 
-        command_t *cur_cmd = &clist->commands[cmd_count];
-
-        char *arg;
-        char *arg_rest = cmd;
+        cmd_buff_t *cur_cmd = &clist->commands[cmd_count];
+        char *arg_start = NULL;
+        bool in_quotes = false;
         int arg_count = 0;
 
-        // Split tokens and iterate
-        while ((arg = strtok_r(arg_rest, " ", &arg_rest)) != NULL) {
-
-            // First string is the executable
-            if (arg_count == 0) {
-                if (strlen(arg) >= EXE_MAX) return ERR_CMD_OR_ARGS_TOO_BIG;
-
-                strncpy(cur_cmd->exe, arg, EXE_MAX - 1);
-                cur_cmd->exe[EXE_MAX - 1] = '\0';
-
-            // Other strings are arguments
+        char *ptr = cmd;
+        while (*ptr) {
+            if (*ptr == '"') {
+                in_quotes = !in_quotes;
+                if (!in_quotes) {
+                    *ptr = '\0';
+                } else {
+                    arg_start = ptr + 1;
+                }
+            } else if (isspace((unsigned char) *ptr) && !in_quotes) {
+                if (arg_start) {
+                    *ptr = '\0';
+                    if (arg_count >= CMD_ARGV_MAX - 1) {
+                        free(cmd_buff);
+                        return ERR_MEMORY;
+                    }
+                    cur_cmd->argv[arg_count++] = strdup(arg_start);
+                    arg_start = NULL;
+                }
             } else {
-
-                if (strlen(cur_cmd->args) + strlen(arg) + 1 >= ARG_MAX) {
-                    return ERR_CMD_OR_ARGS_TOO_BIG;
+                if (!arg_start) {
+                    arg_start = ptr;
                 }
-
-                // Add space after first argument if there are more than one
-                if (arg_count > 1) {
-                    strncat(cur_cmd->args, " ", ARG_MAX - strlen(cur_cmd->args) - 1);
-                }
-
-                // Concatenate argument to arg string
-                strncat(cur_cmd->args, arg, ARG_MAX - strlen(cur_cmd->args) - 1);
             }
-
-            arg_count++;
+            ptr++;
         }
 
+        if (arg_start) {
+            cur_cmd->argv[arg_count++] = strdup(arg_start);
+        }
+
+        cur_cmd->argv[arg_count] = NULL;
+        cur_cmd->argc = arg_count;
         cmd_count++;
     }
 
     clist->num = cmd_count;
+    free(cmd_buff);
     return (cmd_count == 0) ? WARN_NO_CMDS : OK;
 }
-
-
-
-
-
 
 /*
  * Implement your exec_local_cmd_loop function by building a loop that prompts the 
@@ -130,113 +173,86 @@ int build_cmd_list(char *cmd_line, command_list_t *clist) {
  *  Standard Library Functions You Might Want To Consider Using (assignment 2+)
  *      fork(), execvp(), exit(), chdir()
  */
-int exec_local_cmd_loop()
-{
-    char *cmd_buff = malloc(SH_CMD_MAX);
-    if (!cmd_buff) return ERR_MEMORY;
-
-    cmd_buff_t cmd;
+int exec_local_cmd_loop() {
+    char cmd_buff[SH_CMD_MAX];
+    command_list_t command_list;
 
     while (1) {
         printf("%s", SH_PROMPT);
-
         if (fgets(cmd_buff, SH_CMD_MAX, stdin) == NULL) {
             printf("\n");
             break;
         }
 
-        // Remove trailing newline
         cmd_buff[strcspn(cmd_buff, "\n")] = '\0';
 
-        // Trim leading spaces
-        while (*cmd_buff && isspace((unsigned char)*cmd_buff)) {
-            cmd_buff++;
-        }
-
-        // Trim trailing spaces
-        char *end = cmd_buff + strlen(cmd_buff) - 1;
-        while (end > cmd_buff && isspace((unsigned char)*end)) {
-            *end = '\0';
-            end--;
-        }
-
-        char *args[CMD_ARGV_MAX] = {NULL};  // Argument list
-        int arg_count = 0;
-        char *ptr = cmd_buff;
-        bool in_quotes = false;
-        char *arg_start = NULL;
-
-        while (*ptr) {
-            if (*ptr == '"') {
-                in_quotes = !in_quotes;
-                if (!in_quotes) {
-                    *ptr = '\0';
-                } else {
-                    arg_start = ptr + 1;
-                }
-            } else if (isspace((unsigned char)*ptr) && !in_quotes) {
-                if (arg_start) {
-                    *ptr = '\0';
-
-                    if (arg_count >= CMD_ARGV_MAX - 1) {
-                        return ERR_MEMORY;                      
-                    }
-
-                    args[arg_count++] = strdup(arg_start);
-                    arg_start = NULL;
-                }
-            } else {
-                if (!arg_start) {
-                    arg_start = ptr;
-                }
-            }
-            ptr++;
-        }
-        if (arg_start) {
-            args[arg_count++] = strdup(arg_start);
-        }
-        args[arg_count] = NULL;
-
-        if (arg_count == 0) {
+        int result = build_cmd_list(cmd_buff, &command_list);
+        if (result == WARN_NO_CMDS) {
             printf("%s\n", CMD_WARN_NO_CMD);
             continue;
-        }
-
-        cmd.argc = arg_count;
-        for (int i = 0; i < arg_count; i++) {
-            cmd.argv[i] = args[i];
-        }
-        cmd.argv[arg_count] = NULL;
-
-        // Built-in commands
-        if (strcmp(args[0], "exit") == 0) {
-            printf("Exiting shell...\n");
-            for (int i = 0; i < arg_count; i++) free(args[i]);
-            free(cmd_buff);
-            exit(0);
-        }
-        if (strcmp(args[0], "cd") == 0) {
-            dsh_cd(cmd.argc, cmd.argv);
+        } else if (result == ERR_TOO_MANY_COMMANDS) {
+            printf("%s\n", CMD_ERR_PIPE_LIMIT);
             continue;
         }
 
-        // External commands
-        pid_t pid = fork();
-        if (pid == -1) {
-            perror("fork failed");
-            exit(1);
-        } else if (pid == 0) {
-            execvp(args[0], args);
-            perror("execvp failed");
-            exit(1);
-        } else {
-            int status;
-            wait(&status);
+        int pipes[CMD_MAX - 1][2];
+        for (int i = 0; i < command_list.num - 1; i++) {
+            if (pipe(pipes[i]) == -1) {
+                perror("pipe failed");
+                return ERR_MEMORY;
+            }
         }
 
+        for (int i = 0; i < command_list.num; i++) {
+            cmd_buff_t *cmd = &command_list.commands[i];
 
-        // Free allocated memory
-        for (int i = 0; i < arg_count; i++) free(args[i]);
+            // Handle built-in commands
+            if (strcmp(cmd->argv[0], "exit") == 0) {
+                printf("Exiting shell...\n");
+                return 0;
+            } 
+            if (strcmp(cmd->argv[0], "cd") == 0) {
+                dsh_cd(cmd->argc, cmd->argv);
+                continue;
+            }
+
+            pid_t pid = fork();
+            if (pid == -1) {
+                perror("fork failed");
+                return ERR_MEMORY;
+            }
+
+            if (pid == 0) {
+                // Set up pipes
+                if (i > 0) {
+                    dup2(pipes[i - 1][0], STDIN_FILENO);
+                }
+                if (i < command_list.num - 1) {
+                    dup2(pipes[i][1], STDOUT_FILENO);
+                }
+
+                // Close unused pipes
+                for (int j = 0; j < command_list.num - 1; j++) {
+                    close(pipes[j][0]);
+                    close(pipes[j][1]);
+                }
+
+                execvp(cmd->argv[0], cmd->argv);
+                perror(CMD_ERR_EXECUTE);
+                exit(1);
+            }
+        }
+
+        // Close all pipes in parent
+        for (int i = 0; i < command_list.num - 1; i++) {
+            close(pipes[i][0]);
+            close(pipes[i][1]);
+        }
+
+        // Wait for all child processes
+        for (int i = 0; i < command_list.num; i++) {
+            wait(NULL);
+        }
     }
 
     return OK;
