@@ -80,53 +80,56 @@ int build_cmd_list(char *cmd_line, command_list_t *clist) {
             end--;
         }
 
-        if (strlen(cmd) == 0) {
+        if (*cmd == '\0') {  // Skip empty commands
             continue;
         }
 
         cmd_buff_t *cur_cmd = &clist->commands[cmd_count];
+        cur_cmd->argc = 0;
+
         char *arg_start = NULL;
         bool in_quotes = false;
         int arg_count = 0;
 
         char *ptr = cmd;
         while (*ptr) {
-            if (*ptr == '"') {
+            if (*ptr == '"') {  // Handle quotes
                 in_quotes = !in_quotes;
                 if (!in_quotes) {
-                    *ptr = '\0';
+                    *ptr = '\0';  // End of quoted string
                 } else {
-                    arg_start = ptr + 1;
+                    arg_start = ptr + 1;  // Start of quoted string
                 }
-            } else if (isspace((unsigned char) *ptr) && !in_quotes) {
+            } else if (isspace((unsigned char) *ptr) && !in_quotes) {  // Space handling
                 if (arg_start) {
                     *ptr = '\0';
-                    if (arg_count >= CMD_ARGV_MAX - 1) {
-                        free(cmd_buff);
-                        return ERR_MEMORY;
-                    }
                     cur_cmd->argv[arg_count++] = strdup(arg_start);
                     arg_start = NULL;
                 }
             } else {
                 if (!arg_start) {
-                    arg_start = ptr;
+                    arg_start = ptr;  // Start of argument
                 }
             }
             ptr++;
         }
 
+        // Add the last argument if present
         if (arg_start) {
             cur_cmd->argv[arg_count++] = strdup(arg_start);
         }
 
         cur_cmd->argv[arg_count] = NULL;
         cur_cmd->argc = arg_count;
-        cmd_count++;
+
+        // Increment cmd_count if we have valid arguments
+        if (arg_count > 0) {
+            cmd_count++;
+        }
     }
 
-    clist->num = cmd_count;
     free(cmd_buff);
+    clist->num = cmd_count;
     return (cmd_count == 0) ? WARN_NO_CMDS : OK;
 }
 
