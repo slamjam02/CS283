@@ -1,0 +1,4 @@
+hello
+not that word here
+hello
+not that word again
