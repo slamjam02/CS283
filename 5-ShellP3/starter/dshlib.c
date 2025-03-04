@@ -199,6 +199,8 @@ int exec_local_cmd_loop() {
         }
 
         int pipes[CMD_MAX - 1][2];
+        pid_t child_pids[CMD_MAX]; // Array to store child process IDs
+
         for (int i = 0; i < command_list.num - 1; i++) {
             if (pipe(pipes[i]) == -1) {
                 perror("pipe failed");
@@ -243,6 +245,8 @@ int exec_local_cmd_loop() {
                 execvp(cmd->argv[0], cmd->argv);
                 perror(CMD_ERR_EXECUTE);
                 exit(1);
+            } else { // Parent process stores child process ID
+                child_pids[i] = pid;
             }
         }
 
@@ -252,9 +256,10 @@ int exec_local_cmd_loop() {
             close(pipes[i][1]);
         }
 
-        // Wait for all child processes
+        // Wait for child processes to complete
+        int status;
         for (int i = 0; i < command_list.num; i++) {
-            wait(NULL);
+            waitpid(child_pids[i], &status, 0);
         }
     }
 
